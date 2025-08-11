@@ -1,0 +1,20 @@
+# macOS system files
+.DS_Store
+
+# Windows system files
+Thumbs.db
+
+# IDE/Editor specific files
+.idea/
+.vscode/
+
+# Future dependencies (if you ever use Node.js)
+node_modules/
+
+# Production build folder (if you ever create one)
+dist/
+build/
+
+# Package lock files
+package-lock.json
+yarn.lock
