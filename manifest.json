@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "我的网页翻译插件",
+  "version": "1.4",
+  "description": "一个支持快捷键、DeepL、Gemini 和 DeepSeek 的高级网页翻译插件。",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://generativelanguage.googleapis.com/",
+    "https://api.deepseek.com/" 
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "commands": {
+    "trigger_translation": {
+      "suggested_key": {
+        "default": "Alt+T",
+        "mac": "Alt+T"
+      },
+      "description": "触发页面翻译"
+    }
+  },
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  }
+}

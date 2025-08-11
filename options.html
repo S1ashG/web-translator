@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>翻译插件设置</title>
+  <link rel="stylesheet" href="options_style.css">
+</head>
+<body>
+
+  <div class="container">
+    <h1>翻译设置</h1>
+
+    <div class="form-group">
+      <label for="service">翻译服务</label>
+      <select id="service">
+        <option value="deepl">DeepL</option>
+        <option value="gemini">Google Gemini</option>
+        <option value="deepseek">DeepSeek</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="apiKey">API Key</label>
+      <input type="text" id="apiKey" placeholder="请输入您选择服务的 API Key">
+    </div>
+
+    <div id="llm-settings" class="hidden">
+      <h2>语言模型设置</h2>
+      
+      <div id="gemini-model-selector" class="form-group hidden">
+        <label>可用 Gemini 模型</label>
+        <div class="model-fetch-container">
+          <select id="geminiModel"></select>
+          <button id="fetchGeminiModelsBtn">获取/刷新模型</button>
+        </div>
+      </div>
+      
+      <div id="deepseek-model-selector" class="form-group hidden">
+        <label>可用 DeepSeek 模型</label>
+        <div class="model-fetch-container">
+          <select id="deepseekModel"></select>
+          <button id="fetchDeepSeekModelsBtn">获取/刷新模型</button>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="systemPrompt">System Prompt</label>
+        <textarea id="systemPrompt"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="userPrompt">User Prompt (使用 <code>{{text}}</code> 作为原文占位符)</label>
+        <textarea id="userPrompt"></textarea>
+      </div>
+    </div>
+
+    <div id="performance-settings">
+        <h2>性能设置 (适用于所有服务)</h2>
+        <div class="form-group">
+            <label for="batchSize">每批次处理的段落数 (1-20)</label>
+            <input type="number" id="batchSize" min="1" max="20">
+        </div>
+        <div class="form-group">
+            <label for="batchDelay">每批次之间的间隔时间 (毫秒)</label>
+            <input type="number" id="batchDelay" min="0" max="10000" step="100">
+        </div>
+    </div>
+
+    <hr>
+    <button id="save">保存设置</button>
+    <div id="status"></div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
