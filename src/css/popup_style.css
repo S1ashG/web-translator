@@ -1,0 +1,58 @@
+/* Reset body styles for clean positioning */
+body { 
+  width: 220px; 
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0;
+  padding: 0; /* Remove padding from body */
+}
+
+/* The settings button itself */
+#settings-btn {
+  position: absolute;
+  top: 10px; /* Adjust position relative to the window corner */
+  right: 10px;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.2s;
+}
+#settings-btn:hover {
+  opacity: 1;
+  transform: rotate(45deg); /* Add a little animation */
+}
+
+/* A new wrapper for the main content */
+.content-wrapper {
+  padding: 10px;
+  padding-top: 40px; /* Add extra top padding so content doesn't overlap the button */
+  text-align: center;
+}
+
+h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+#message {
+  min-height: 20px;
+  font-size: 12px;
+  word-wrap: break-word;
+  margin-top: 15px;
+}
+
+button#translateBtn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s ease-in-out;
+}
+
+button#translateBtn:hover {
+    background-color: #0056b3;
+}

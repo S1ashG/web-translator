@@ -20,19 +20,19 @@ A special aspect of this project is that it was developed in close collaboration
 
 ## ✨ Key Features
 
--   **🌐 Immersive Translation:** Displays translations paragraph-by-paragraph, directly below the original text, for a seamless bilingual reading experience.
--   **🚀 Multiple Backends:** Supports three powerful translation service providers:
+-   **Immersive Translation:** Displays translations paragraph-by-paragraph, directly below the original text, for a seamless bilingual reading experience.
+-   **Multiple Backends:** Supports three powerful translation service providers:
     -   **DeepL**
     -   **Google Gemini**
     -   **Deepseek**
--   **💰 Translate-on-Scroll:** To save on API costs, the extension only translates content that is currently visible on your screen. As you scroll down, new text is automatically translated on demand.
--   **⚙️ Highly Configurable:** A detailed options page allows you to:
+-   **Translate-on-Scroll:** To save on API costs, the extension only translates content that is currently visible on your screen. As you scroll down, new text is automatically translated on demand.
+-   **Highly Configurable:** A detailed options page allows you to:
     -   Switch between translation services.
     -   Securely store a separate API key for each service.
     -   Fetch and select specific models for LLM providers (Gemini, Deepseek).
     -   Customize the System and User Prompts for LLM-based translations.
     -   Adjust performance settings like batch size and request delay to respect API rate limits.
--   **⌨️ Keyboard Shortcut:** Start or stop the translation on any page with a simple keyboard shortcut (`Alt+T`). The toggle is tab-specific, allowing you to manage translations independently on different pages.
+-   **Keyboard Shortcut:** Start or stop the translation on any page with a simple keyboard shortcut (`Alt+T`). The toggle is tab-specific, allowing you to manage translations independently on different pages.
 
 ## 🚀 Installation (from source)
 
