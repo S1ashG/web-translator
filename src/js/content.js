@@ -16,15 +16,16 @@
     queueTimeout: null,
     isTranslationActive: false,
     stylesInjected: false,
+    styleSettings: null, // To store loaded style settings
 
-    start() {
+    async start() {
       if (this.isTranslationActive) {
         console.log("Translation is already active.");
         return;
       }
       this.isTranslationActive = true;
       console.log("Translation process STARTED. Setting up IntersectionObserver.");
-      this.injectSpinnerStyles();
+      await this.loadStyleSettings(); // Load settings before starting
       
       const elementsToObserve = document.querySelectorAll('p, li, blockquote, h1, h2, h3, h4, h5, h6');
       
@@ -35,6 +36,8 @@
       });
       
       elementsToObserve.forEach(el => this.observer.observe(el));
+      
+      this.injectSpinnerStyles(); // Inject styles after settings are loaded
     },
 
     stop() {
@@ -151,14 +154,16 @@
         p.dataset.translated = 'true';
     
         // Store the placeholder for future updates
-        this.translationPlaceholders.set(originalText, placeholder);
+        // We store the original element as well, to be able to copy its style later.
+        this.translationPlaceholders.set(originalText, { placeholder, originalElement: p });
       });
     },
 
     updateTranslation(originalText, translatedText) {
-      const placeholder = this.translationPlaceholders.get(originalText);
+      const entry = this.translationPlaceholders.get(originalText);
 
-      if (placeholder) {
+      if (entry) {
+        const { placeholder, originalElement } = entry;
         placeholder.innerHTML = ''; // Clear the spinner
         placeholder.innerText = translatedText;
         
@@ -166,17 +171,30 @@
         placeholder.classList.remove('translation-placeholder-loading');
         placeholder.classList.add('translation-placeholder-done');
         
+        // Common structural styles
+        placeholder.style.marginTop = '5px';
+        placeholder.style.paddingLeft = '10px';
+
         if (translatedText.startsWith('[翻译失败') || translatedText.startsWith('[翻译通信错误')) {
+            // Error styling is independent and consistent
+            placeholder.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+            placeholder.style.lineHeight = '1.5';
+            placeholder.style.fontStyle = 'normal';
             placeholder.style.color = '#d9534f'; // Red for error
             placeholder.style.borderLeft = '3px solid #d9534f';
+            placeholder.style.fontSize = '0.9em';
+        } else if (this.styleSettings.match) {
+            // NEW: Match original style
+            const computedStyle = window.getComputedStyle(originalElement);
+            const propsToCopy = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'color', 'lineHeight', 'textAlign', 'textTransform', 'letterSpacing'];
+            propsToCopy.forEach(prop => {
+                placeholder.style[prop] = computedStyle[prop];
+            });
+            placeholder.style.borderLeft = `3px solid ${computedStyle.color}`;
         } else {
-            placeholder.style.color = '#007bff';
-            placeholder.style.borderLeft = '3px solid #007bff';
+            // Apply the entire style object loaded from settings.
+            Object.assign(placeholder.style, this.styleSettings);
         }
-
-        placeholder.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
-        placeholder.style.lineHeight = '1.5';
-        placeholder.style.fontStyle = 'normal';
       } else {
             //console.warn(`No placeholder found for text: ${originalText}`);
             }
@@ -206,6 +224,63 @@
       `;
       document.head.appendChild(style);
       this.stylesInjected = true;
+    },
+
+    async loadStyleSettings() {
+        const presets = {
+            default: {
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                lineHeight: '1.5',
+                fontStyle: 'normal',
+                color: '#007bff',
+                fontSize: '0.95em',
+                borderLeft: '3px solid #007bff',
+            },
+            subtle: {
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                lineHeight: '1.5',
+                fontStyle: 'normal',
+                color: '#555',
+                fontSize: '0.9em',
+                borderLeft: '3px solid #ccc',
+            },
+            highlighted: {
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                lineHeight: '1.5',
+                fontStyle: 'normal',
+                color: 'black',
+                fontSize: '0.95em',
+                borderLeft: '3px solid #ffc107',
+                backgroundColor: '#fffbe6',
+                // Override paddingLeft from the common structural styles
+                // Note: padding is set in updateTranslation, so this is an example
+                padding: '5px 10px',
+            }
+        };
+
+        const items = await chrome.storage.sync.get({
+            stylePreset: 'default',
+            customStyle: { fontSize: 0.95, color: '#007bff' },
+            matchOriginalStyle: false
+        });
+
+        if (items.matchOriginalStyle) {
+            this.styleSettings = { match: true };
+            return;
+        }
+
+        if (items.stylePreset === 'custom') {
+            this.styleSettings = {
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                lineHeight: '1.5',
+                fontStyle: 'normal',
+                color: items.customStyle.color,
+                fontSize: `${items.customStyle.fontSize}em`,
+                borderLeft: `3px solid ${items.customStyle.color}`
+            };
+        } else {
+            this.styleSettings = presets[items.stylePreset] || presets.default;
+        }
     }
   };
 

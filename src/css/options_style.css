@@ -85,3 +85,51 @@ button {
   border-radius: 4px;
   display: none;
 }
+
+.checkbox-group {
+  margin-bottom: 10px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+
+#style-presets {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#style-presets label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: normal; /* Override default label style */
+  cursor: pointer;
+}
+
+#custom-style-options {
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  margin-top: 10px;
+  background-color: #fafafa;
+}
+
+/* Make color picker smaller */
+input[type="color"] {
+  padding: 2px;
+  height: 40px;
+}
+
+fieldset {
+  border: 1px solid #e0e0e0;
+  padding: 0 15px 15px 15px;
+  border-radius: 4px;
+}

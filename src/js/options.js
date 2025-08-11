@@ -1,4 +1,6 @@
 // options.js (v9 - Genuinely Complete and Corrected)
+
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
     const serviceSelect = document.getElementById('service');
@@ -19,6 +21,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const userPromptText = document.getElementById('userPrompt');
     const batchSizeInput = document.getElementById('batchSize');
     const batchDelayInput = document.getElementById('batchDelay');
+    // Style Settings
+    const stylePresetRadios = document.querySelectorAll('input[name="stylePreset"]');
+    const customStyleOptionsDiv = document.getElementById('custom-style-options');
+    const customFontSizeInput = document.getElementById('customFontSize');
+    const customColorInput = document.getElementById('customColor');
+    const matchStyleCheckbox = document.getElementById('matchStyleCheckbox');
+    const styleDetailsFieldset = document.getElementById('style-details-fieldset');
+
 
     let cachedSettings = {};
 
@@ -49,6 +59,16 @@ document.addEventListener('DOMContentLoaded', () => {
         deepseekModelSelectorDiv.classList.toggle('hidden', selectedService !== 'deepseek');
     }
 
+    function toggleCustomStyleVisibility() {
+        const isCustom = document.querySelector('input[name="stylePreset"]:checked').value === 'custom';
+        customStyleOptionsDiv.classList.toggle('hidden', !isCustom);
+    }
+
+    function toggleStyleDetailsFieldset() {
+        styleDetailsFieldset.disabled = matchStyleCheckbox.checked;
+        toggleCustomStyleVisibility(); // Also update custom visibility
+    }
+
     function saveOptions() {
         const currentService = serviceSelect.value;
         const currentApiKey = apiKeyInput.value.trim();
@@ -57,6 +77,12 @@ document.addEventListener('DOMContentLoaded', () => {
             cachedSettings.apiKeys = {};
         }
         cachedSettings.apiKeys[currentService] = currentApiKey;
+
+        const stylePreset = document.querySelector('input[name="stylePreset"]:checked').value;
+        const customStyle = {
+            fontSize: customFontSizeInput.value, // Store as number
+            color: customColorInput.value
+        };
 
         const settingsToSave = {
             translationService: currentService,
@@ -67,6 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
             userPrompt: userPromptText.value,
             batchSize: parseInt(batchSizeInput.value, 10) || 5,
             batchDelay: parseInt(batchDelayInput.value, 10) || 1000,
+            stylePreset: stylePreset,
+            customStyle: customStyle,
+            matchOriginalStyle: matchStyleCheckbox.checked
         };
 
         chrome.storage.sync.set(settingsToSave, () => {
@@ -137,7 +166,10 @@ document.addEventListener('DOMContentLoaded', () => {
             systemPrompt: defaultSystemPrompt,
             userPrompt: defaultUserPrompt,
             batchSize: 5,
-            batchDelay: 1000
+            batchDelay: 1000,
+            stylePreset: 'default', // Default preset
+            matchOriginalStyle: false, // Default for the new checkbox
+            customStyle: { fontSize: 0.95, color: '#007bff' }
         };
         chrome.storage.sync.get(defaults, (items) => {
             cachedSettings = items;
@@ -165,7 +197,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 deepseekModelSelect.value = items.deepseekModel;
             }
             
+            // Restore style settings
+            document.querySelector(`input[name="stylePreset"][value="${items.stylePreset}"]`).checked = true;
+            customFontSizeInput.value = items.customStyle.fontSize;
+            customColorInput.value = items.customStyle.color;
+            matchStyleCheckbox.checked = items.matchOriginalStyle;
+
             toggleLlmSettings();
+            // This now handles both disabling the fieldset and showing/hiding the custom options
+            toggleStyleDetailsFieldset();
         });
     }
 
@@ -177,6 +217,11 @@ document.addEventListener('DOMContentLoaded', () => {
     saveButton.addEventListener('click', saveOptions);
     fetchGeminiModelsBtn.addEventListener('click', fetchGeminiModels);
     fetchDeepSeekModelsBtn.addEventListener('click', fetchDeepSeekModels);
+    stylePresetRadios.forEach(radio => {
+        radio.addEventListener('change', toggleCustomStyleVisibility);
+    });
+    matchStyleCheckbox.addEventListener('change', toggleStyleDetailsFieldset);
+
 
     // --- Initial Call ---
     restoreOptions();
