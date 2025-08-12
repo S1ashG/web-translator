@@ -11,12 +11,14 @@
 
   window.translationManager = {
     observer: null,
-    translationQueue: new Set(),
+    accumulationQueue: new Set(), // Holds elements waiting to be batched.
     translationPlaceholders: new Map(), // 用于存储占位符和元素的映射关系
     queueTimeout: null,
     isTranslationActive: false,
     stylesInjected: false,
     styleSettings: null, // To store loaded style settings
+    contentBatchSize: 30, // Default value, will be overwritten by settings.
+    FLUSH_DELAY: 1500, // Delay to flush remaining items after scrolling stops.
 
     async start() {
       if (this.isTranslationActive) {
@@ -25,7 +27,7 @@
       }
       this.isTranslationActive = true;
       console.log("Translation process STARTED. Setting up IntersectionObserver.");
-      await this.loadStyleSettings(); // Load settings before starting
+      await this.loadSettings(); // Load settings before starting
       
       const elementsToObserve = document.querySelectorAll('p, li, blockquote, h1, h2, h3, h4, h5, h6');
       
@@ -54,20 +56,22 @@
       }
       
       clearTimeout(this.queueTimeout);
-      this.translationQueue.clear();
+      this.accumulationQueue.clear();
     },
 
     handleIntersection(entries, observer) {
       if (!this.isTranslationActive) return;
 
+      let newItemsAdded = false;
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const element = entry.target;
           if (!element.dataset.translated && !element.dataset.translationRequested) {
             const text = element.innerText;
             if (text && text.trim().length > 3) {
-              this.translationQueue.add(element);
+              this.accumulationQueue.add(element);
               element.dataset.translationRequested = 'true';
+              newItemsAdded = true;
             }
           }
           // Important: Unobserve the element after it has been seen once to prevent re-triggering.
@@ -76,27 +80,55 @@
         }
       });
 
-      if (this.translationQueue.size > 0) {
-        this.debouncedProcessQueue();
+      // If we added new items, we might need to process a batch or set a timeout for the remainder.
+      if (newItemsAdded) {
+        this.triggerBatchProcessing();
       }
     },
     
+    // New function to manage batching logic
+    triggerBatchProcessing() {
+      // As long as we have enough items for a full batch, process them immediately.
+      while (this.accumulationQueue.size >= this.contentBatchSize) {
+        // Take the first contentBatchSize items from the Set.
+        const elementsToTranslate = Array.from(this.accumulationQueue).slice(0, this.contentBatchSize);
+        
+        // Remove these elements from the main queue.
+        elementsToTranslate.forEach(el => this.accumulationQueue.delete(el));
+        
+        console.log(`Processing a full batch of ${this.contentBatchSize} items.`);
+        // Process this batch immediately, without debounce.
+        this.processQueue(elementsToTranslate);
+      }
+      
+      // If there are any leftover items, set a timer to flush them later.
+      // This handles the "end of scroll" or "small page" cases.
+      if (this.accumulationQueue.size > 0) {
+        this.debouncedProcessQueue();
+      }
+    },
+
     debouncedProcessQueue() {
       clearTimeout(this.queueTimeout);
       this.queueTimeout = setTimeout(() => {
-        this.processQueue();
-      }, 500); // Wait 500ms of "scroll inactivity" before sending request
+        // When the timer fires, process ALL remaining items in the queue.
+        const remainingElements = Array.from(this.accumulationQueue);
+        this.accumulationQueue.clear();
+        
+        if (remainingElements.length > 0) {
+          console.log(`Flushing remaining ${remainingElements.length} items from queue.`);
+          this.processQueue(remainingElements);
+        }
+      }, this.FLUSH_DELAY); // Wait for scrolling to stop before sending the last partial request.
     },
     
-    async processQueue() {
-      if (this.translationQueue.size === 0 || !this.isTranslationActive) return;
-      
-      const elementsToTranslate = Array.from(this.translationQueue);
-      this.translationQueue.clear();
+    async processQueue(elementsToTranslate) {
+      if (elementsToTranslate.length === 0 || !this.isTranslationActive) return;
       
       const textsToTranslate = elementsToTranslate.map(el => el.innerText);
       
       // Step 1: Create placeholders on the page immediately.
+      // This is now correctly timed: only for elements being translated.
       this.createPlaceholdersFor(elementsToTranslate);
       
       console.log(`[CONTENT.JS] Sending batch of ${textsToTranslate.length} visible texts to background.`);
@@ -226,7 +258,7 @@
       this.stylesInjected = true;
     },
 
-    async loadStyleSettings() {
+    async loadSettings() {
         const presets = {
             default: {
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
@@ -261,9 +293,15 @@
         const items = await chrome.storage.sync.get({
             stylePreset: 'default',
             customStyle: { fontSize: 0.95, color: '#007bff' },
-            matchOriginalStyle: false
+            matchOriginalStyle: false,
+            batchSize: 30 // Default batch size if not set in storage
         });
 
+        // 1. Set the batch size for content script
+        this.contentBatchSize = items.batchSize > 0 ? items.batchSize : 30;
+        console.log(`[CONTENT.JS] Batch size set to: ${this.contentBatchSize}`);
+
+        // 2. Set style settings
         if (items.matchOriginalStyle) {
             this.styleSettings = { match: true };
             return;

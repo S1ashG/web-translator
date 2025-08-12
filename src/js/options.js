@@ -28,6 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const customColorInput = document.getElementById('customColor');
     const matchStyleCheckbox = document.getElementById('matchStyleCheckbox');
     const styleDetailsFieldset = document.getElementById('style-details-fieldset');
+    // Navigation elements
+    const navItems = document.querySelectorAll('.options-nav .nav-item');
+    const panels = document.querySelectorAll('.options-panels .panel');
 
 
     let cachedSettings = {};
@@ -67,6 +70,26 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleStyleDetailsFieldset() {
         styleDetailsFieldset.disabled = matchStyleCheckbox.checked;
         toggleCustomStyleVisibility(); // Also update custom visibility
+    }
+
+    // Function to handle panel switching
+    function handleNavClick(event) {
+        const targetId = event.currentTarget.dataset.target;
+
+        // Update nav items' active state
+        navItems.forEach(item => {
+            item.classList.remove('active');
+        });
+        event.currentTarget.classList.add('active');
+
+        // Update panels' visibility
+        panels.forEach(panel => {
+            if (panel.id === targetId) {
+                panel.classList.add('active');
+            } else {
+                panel.classList.remove('active');
+            }
+        });
     }
 
     function saveOptions() {
@@ -221,6 +244,11 @@ document.addEventListener('DOMContentLoaded', () => {
         radio.addEventListener('change', toggleCustomStyleVisibility);
     });
     matchStyleCheckbox.addEventListener('change', toggleStyleDetailsFieldset);
+
+    // Add event listeners for navigation
+    navItems.forEach(item => {
+        item.addEventListener('click', handleNavClick);
+    });
 
 
     // --- Initial Call ---
