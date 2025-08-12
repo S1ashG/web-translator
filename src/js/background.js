@@ -126,6 +126,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse({ success: true, models: models.filter(m => m.includes('chat')) });
         }).catch(error => { console.error("Failed to fetch DeepSeek models:", error); sendResponse({ success: false, error: error.message }); });
       return true;
+
+    case 'fetch_local_llm_models':
+      (async () => {
+        try {
+          const models = await fetchLocalModelsFromApi(request.apiBase);
+          sendResponse({ success: true, models });
+        } catch (error) {
+          console.error("Local LLM model fetch failed:", error);
+          sendResponse({ success: false, error: error.message });
+        }
+      })();
+      return true; // Async response
   }
 });
 
@@ -143,6 +155,8 @@ async function handleTranslationBatch(texts, tabId) {
     apiKeys: { deepl: '', gemini: '', deepseek: '' },
     geminiModel: '',
     deepseekModel: '',
+    localLlmApiBase: '',
+    localLlmModelName: '',
     systemPrompt: '',
     userPrompt: '',
     batchSize: 5,
@@ -151,8 +165,11 @@ async function handleTranslationBatch(texts, tabId) {
 
   console.log('[BACKGROUND.JS] Using settings:', settings);
   
-  const currentApiKey = settings.apiKeys[settings.translationService];
-  if (!currentApiKey) {
+  const currentService = settings.translationService;
+  const currentApiKey = settings.apiKeys[currentService];
+  
+  // API key is not needed for local service
+  if (currentService !== 'local' && !currentApiKey) {
     throw new Error(`API Key for service "${settings.translationService}" is not set.`);
   }
 
@@ -166,11 +183,13 @@ async function handleTranslationBatch(texts, tabId) {
       try {
         let translatedText;
         const llmSettings = { ...settings, apiKey: currentApiKey };
-        if (settings.translationService === 'deepl') {
+        if (currentService === 'deepl') {
           translatedText = await translateWithDeepL(text, currentApiKey);
-        } else if (settings.translationService === 'gemini') {
+        } else if (currentService === 'gemini') {
           translatedText = await translateWithGemini(text, llmSettings);
-        } else if (settings.translationService === 'deepseek') {
+        } else if (currentService === 'local') {
+          translatedText = await translateWithLocalLLM(text, llmSettings);
+        } else if (currentService === 'deepseek') {
           translatedText = await translateWithDeepSeek(text, llmSettings);
         }
         if (typeof translatedText === 'string') {
@@ -290,4 +309,80 @@ async function translateWithDeepSeek(text, settings) {
     const data = await response.json();
     if (!data.choices || data.choices.length === 0) { return "[模型未返回有效翻译]"; }
     return data.choices[0].message.content;
+}
+
+async function translateWithLocalLLM(text, settings) {
+    const { localLlmApiBase, localLlmModelName, systemPrompt, userPrompt } = settings;
+    if (!localLlmApiBase) throw new Error("本地 LLM 的 API Base URL 未设置。");
+    if (!localLlmModelName) throw new Error("本地 LLM 的模型名称未设置。");
+
+    const apiUrl = new URL('/api/generate', localLlmApiBase).href;
+
+    const headers = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Chrome-Extension-Translator/1.0', // Add a User-Agent
+        'Connection': 'keep-alive' // Explicitly set Connection header
+    };
+    if (settings.apiKey) {
+        headers['Authorization'] = `Bearer ${settings.apiKey}`;
+    }
+
+    const fullPrompt = `${systemPrompt}\n\n${userPrompt.replace('{{text}}', text)}`;
+
+    const requestBody = {
+        model: localLlmModelName,
+        prompt: fullPrompt,
+        stream: false
+    };
+
+    console.log("Sending request to local LLM:", { apiUrl, headers, requestBody }); // Log the full request
+
+    const response = await fetch(apiUrl, { method: 'POST', headers: headers, body: JSON.stringify(requestBody) });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Full error response from local LLM:", errorText);
+        throw new Error(`本地 LLM API 错误 (Status: ${response.status}): ${errorText.substring(0, 200)}...`);
+    }
+
+    const data = await response.json();
+    if (!data.response) { return "[本地模型未返回有效翻译]"; }
+    return data.response;
+} 
+
+async function fetchLocalModelsFromApi(apiBase) {
+    if (!apiBase) throw new Error("API Base URL 未提供。");
+
+    // Strategy 1: Try OpenAI-compatible /v1/models endpoint
+    try {
+        const response = await fetch(new URL('/v1/models', apiBase).href);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.data && data.data.length > 0) {
+                const models = data.data.map(m => m.id);
+                console.log(`Found ${models.length} models via /v1/models endpoint.`);
+                return models;
+            }
+        }
+    } catch (e) {
+        console.log("Failed to fetch from /v1/models, trying fallback.", e.message);
+    }
+
+    // Strategy 2: Try Ollama-specific /api/tags endpoint
+    try {
+        const response = await fetch(new URL('/api/tags', apiBase).href);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.models && data.models.length > 0) {
+                const models = data.models.map(m => m.name);
+                console.log(`Found ${models.length} models via /api/tags endpoint (Ollama).`);
+                return models;
+            }
+        }
+    } catch (e) {
+        console.log("Failed to fetch from /api/tags.", e.message);
+    }
+    
+    // If both fail
+    throw new Error("无法连接到本地服务或未找到任何模型。请检查 URL 是否正确，以及本地服务（如 Ollama）是否正在运行。");
 }

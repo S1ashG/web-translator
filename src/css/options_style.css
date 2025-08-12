@@ -146,7 +146,8 @@ h2 {
   align-items: center;
 }
 
-.model-fetch-container select {
+.model-fetch-container select,
+.model-fetch-container input[type="text"] {
   flex-grow: 1;
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
@@ -177,6 +178,12 @@ h2 {
 .model-fetch-container button:active {
   background-color: #0056b3; /* 点击时为深蓝色背景 */
   border-color: #0056b3;
+}
+
+.model-fetch-container select[style*="width: auto"] + input {
+  flex-grow: 1;
+  margin-left: 5px;
+  margin-right: 5px;
 }
 
 /* Style settings specifics */
@@ -266,4 +273,8 @@ input[type="color"] {
 /* Utility classes */
 .hidden {
   display: none !important;
+}
+
+#local-llm-settings.hidden {
+    display: none !important;
 }
